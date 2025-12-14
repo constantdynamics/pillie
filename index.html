@@ -1,0 +1,1770 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pillie - Medicatie Herinnering</title>
+
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Medicatie herinnering app voor ouderen - eenvoudig en toegankelijk">
+    <meta name="theme-color" content="#2563EB">
+    <meta name="background-color" content="#F0F7FF">
+
+    <!-- iOS/Safari specifiek -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Pillie">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <style>
+        :root {
+            /* Basis kleuren */
+            --background: #F0F7FF;
+            --primary-blue: #2563EB;
+            --text-primary: #1E3A5F;
+            --text-secondary: #6B7280;
+            --card-background: #FFFFFF;
+            --border: #E5E7EB;
+
+            /* Status kleuren */
+            --green: #059669;
+            --orange: #D97706;
+            --red: #DC2626;
+            --purple: #9333EA;
+
+            /* Typografie - normaal */
+            --clock-size: 48px;
+            --textual-time: 18px;
+            --heading: 24px;
+            --body: 16px;
+            --caption: 14px;
+            --button-height: 56px;
+            --bar-height: 60px;
+        }
+
+        .extra-groot {
+            --clock-size: 72px;
+            --textual-time: 24px;
+            --heading: 32px;
+            --body: 20px;
+            --caption: 18px;
+            --button-height: 72px;
+            --bar-height: 80px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding-bottom: 100px;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card-background);
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: var(--heading);
+            color: var(--text-primary);
+        }
+
+        .settings-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px;
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        /* Countdown klok */
+        .countdown-container {
+            margin: 16px;
+            padding: 24px;
+            border-radius: 16px;
+            text-align: center;
+            color: white;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease;
+        }
+
+        .countdown-container.normal {
+            background-color: var(--primary-blue);
+        }
+
+        .countdown-container.warning {
+            background-color: var(--orange);
+        }
+
+        .countdown-container.urgent {
+            background-color: var(--red);
+        }
+
+        .countdown-container.done {
+            background-color: var(--green);
+        }
+
+        .medicijn-label {
+            font-size: var(--body);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+            opacity: 0.9;
+        }
+
+        .countdown-time {
+            font-size: var(--clock-size);
+            font-weight: bold;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .textual-time {
+            font-size: var(--textual-time);
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        /* Ingenomen knop */
+        .take-button-container {
+            margin: 16px;
+            text-align: center;
+        }
+
+        .take-button {
+            background-color: var(--green);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            padding: 16px 32px;
+            font-size: var(--heading);
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            min-height: var(--button-height);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+
+        .take-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .take-button:active {
+            transform: translateY(0);
+        }
+
+        .take-button .icon {
+            font-size: 32px;
+            margin-bottom: 4px;
+        }
+
+        .take-button .med-name {
+            font-size: var(--body);
+            font-weight: normal;
+            opacity: 0.9;
+            margin-top: 4px;
+        }
+
+        .skip-link {
+            margin-top: 12px;
+            color: var(--text-secondary);
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: var(--caption);
+            background: none;
+            border: none;
+            padding: 8px;
+            min-height: 44px;
+        }
+
+        /* Restrictiebanen */
+        .restrictions-section {
+            margin-top: 24px;
+            padding: 0 16px;
+        }
+
+        .section-title {
+            font-size: var(--body);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .restriction-bar {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            min-height: var(--bar-height);
+            color: white;
+        }
+
+        .restriction-bar.niet-eten {
+            background-color: var(--red);
+        }
+
+        .restriction-bar.niet-liggen {
+            background-color: var(--purple);
+        }
+
+        .restriction-bar.vrij {
+            background-color: var(--green);
+            justify-content: center;
+        }
+
+        .restriction-icon {
+            font-size: 20px;
+            margin-right: 12px;
+        }
+
+        .restriction-text {
+            flex: 1;
+        }
+
+        .restriction-label {
+            font-weight: 600;
+            font-size: var(--body);
+        }
+
+        .restriction-med {
+            font-size: var(--caption);
+            opacity: 0.9;
+        }
+
+        .restriction-time {
+            font-weight: bold;
+            font-size: var(--body);
+        }
+
+        /* Daglijst */
+        .day-schedule {
+            background: var(--card-background);
+            margin: 16px;
+            padding: 16px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .schedule-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+        }
+
+        .schedule-item .bullet {
+            color: var(--primary-blue);
+            font-size: 18px;
+            margin-right: 8px;
+        }
+
+        .schedule-item .name {
+            font-weight: 500;
+            color: var(--text-primary);
+            font-size: var(--body);
+        }
+
+        .schedule-item .time {
+            color: var(--text-secondary);
+            font-size: var(--body);
+            margin-left: 4px;
+        }
+
+        .schedule-item.overdue .name,
+        .schedule-item.overdue .time {
+            color: var(--red);
+        }
+
+        .empty-message {
+            color: var(--text-secondary);
+            font-style: italic;
+            text-align: center;
+            padding: 16px;
+            font-size: var(--body);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: flex-end;
+            align-items: flex-end;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-height: 80vh;
+            border-radius: 24px 24px 0 0;
+            padding: 24px;
+            padding-bottom: 40px;
+            overflow-y: auto;
+        }
+
+        .modal-title {
+            font-size: var(--heading);
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+        }
+
+        .modal-subtitle {
+            font-size: var(--body);
+            color: var(--text-secondary);
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: var(--body);
+            font-weight: 600;
+            cursor: pointer;
+            min-height: var(--button-height);
+            margin-bottom: 12px;
+            border: none;
+        }
+
+        .modal-btn.primary {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .modal-btn.success {
+            background: var(--green);
+            color: white;
+        }
+
+        .modal-btn.outline {
+            background: white;
+            color: var(--primary-blue);
+            border: 2px solid var(--primary-blue);
+        }
+
+        .modal-btn.cancel {
+            background: var(--border);
+            color: var(--text-primary);
+        }
+
+        .time-input-container {
+            text-align: center;
+            margin: 16px 0;
+        }
+
+        .time-input {
+            font-size: var(--heading);
+            padding: 12px 24px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            text-align: center;
+            width: 150px;
+        }
+
+        /* Settings scherm */
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+        }
+
+        .back-btn {
+            background: none;
+            border: none;
+            color: var(--primary-blue);
+            font-size: var(--body);
+            font-weight: 600;
+            cursor: pointer;
+            padding: 8px;
+            min-height: 44px;
+        }
+
+        .settings-section {
+            margin: 24px 16px 0;
+        }
+
+        .settings-card {
+            background: var(--card-background);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 8px;
+        }
+
+        .medicijn-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--card-background);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 8px;
+        }
+
+        .medicijn-info .name {
+            font-weight: 600;
+            font-size: var(--body);
+            color: var(--text-primary);
+        }
+
+        .medicijn-info .time {
+            font-size: var(--caption);
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .medicijn-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .action-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .action-btn.edit {
+            background: var(--primary-blue);
+        }
+
+        .action-btn.delete {
+            background: var(--red);
+        }
+
+        .add-btn {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: var(--body);
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            min-height: var(--button-height);
+            margin-top: 8px;
+        }
+
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 0;
+        }
+
+        .setting-label {
+            font-size: var(--body);
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .mode-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            background: var(--background);
+            color: var(--text-secondary);
+            font-weight: 600;
+            cursor: pointer;
+            min-height: var(--button-height);
+            font-size: var(--caption);
+        }
+
+        .mode-btn.active {
+            background: var(--primary-blue);
+            border-color: var(--primary-blue);
+            color: white;
+        }
+
+        /* Toggle switch */
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 28px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border);
+            transition: 0.3s;
+            border-radius: 28px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle input:checked + .toggle-slider {
+            background-color: var(--green);
+        }
+
+        .toggle input:checked + .toggle-slider:before {
+            transform: translateX(22px);
+        }
+
+        /* Setup wizard */
+        .wizard-step {
+            display: none;
+            padding: 16px;
+        }
+
+        .wizard-step.active {
+            display: block;
+        }
+
+        .step-question {
+            font-size: var(--heading);
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 16px;
+            font-size: var(--body);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+        }
+
+        .option-btn {
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: var(--body);
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 12px;
+            background: white;
+            border: 2px solid var(--border);
+            color: var(--text-primary);
+            min-height: var(--button-height);
+            text-align: center;
+        }
+
+        .option-btn.selected {
+            background: var(--green);
+            border-color: var(--green);
+            color: white;
+        }
+
+        .option-btn.selected-red {
+            background: var(--red);
+            border-color: var(--red);
+            color: white;
+        }
+
+        .option-btn.selected-purple {
+            background: var(--purple);
+            border-color: var(--purple);
+            color: white;
+        }
+
+        .sub-options {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .minute-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .minute-label {
+            width: 80px;
+            color: var(--text-secondary);
+            font-size: var(--body);
+        }
+
+        .minute-input {
+            width: 80px;
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            text-align: center;
+            font-size: var(--body);
+        }
+
+        .minute-unit {
+            margin-left: 8px;
+            color: var(--text-secondary);
+            font-size: var(--body);
+        }
+
+        .progress-dots {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            padding: 16px;
+        }
+
+        .progress-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 5px;
+            background: var(--border);
+        }
+
+        .progress-dot.active {
+            background: var(--primary-blue);
+            width: 24px;
+        }
+
+        .progress-dot.complete {
+            background: var(--green);
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .summary-row {
+            display: flex;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .summary-row:last-child {
+            border-bottom: none;
+        }
+
+        .summary-label {
+            width: 100px;
+            color: var(--text-secondary);
+            font-size: var(--body);
+        }
+
+        .summary-value {
+            flex: 1;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: var(--body);
+        }
+
+        .next-btn {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: var(--body);
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            min-height: var(--button-height);
+            margin-top: 16px;
+        }
+
+        .next-btn:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+        }
+
+        .save-btn {
+            background: var(--green);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 16px;
+            font-size: var(--body);
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            min-height: var(--button-height);
+        }
+
+        /* Notificatie alert */
+        .notification-alert {
+            display: none;
+            position: fixed;
+            top: 80px;
+            left: 16px;
+            right: 16px;
+            background: var(--red);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            z-index: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            animation: slideDown 0.3s ease;
+        }
+
+        .notification-alert.active {
+            display: block;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .notification-alert h3 {
+            font-size: var(--body);
+            margin-bottom: 4px;
+        }
+
+        .notification-alert p {
+            font-size: var(--caption);
+            opacity: 0.9;
+        }
+
+        /* App info */
+        .app-info {
+            text-align: center;
+            padding: 32px 16px;
+            color: var(--text-secondary);
+            font-size: var(--caption);
+        }
+    </style>
+</head>
+<body>
+    <!-- Notificatie Alert -->
+    <div class="notification-alert" id="notificationAlert">
+        <h3>🔔 Tijd voor je medicijn!</h3>
+        <p id="notificationText">Neem nu je medicijn in</p>
+    </div>
+
+    <!-- Hoofdscherm -->
+    <div class="screen active" id="homeScreen">
+        <header class="header">
+            <h1>💊 Pillie</h1>
+            <button class="settings-btn" onclick="showSettings()" aria-label="Instellingen">⚙️</button>
+        </header>
+
+        <main>
+            <!-- Countdown klok -->
+            <div class="countdown-container normal" id="countdownContainer">
+                <div class="medicijn-label" id="nextMedicijnLabel">-</div>
+                <div class="countdown-time" id="countdownTime">--:--:--</div>
+                <div class="textual-time" id="textualTime">Geen medicijnen ingesteld</div>
+            </div>
+
+            <!-- Ingenomen knop -->
+            <div class="take-button-container" id="takeButtonContainer" style="display: none;">
+                <button class="take-button" onclick="showTakeModal()">
+                    <span class="icon">💊</span>
+                    <span>Ingenomen</span>
+                    <span class="med-name" id="takeMedName">-</span>
+                </button>
+                <button class="skip-link" onclick="skipMedicijn()">Overslaan</button>
+            </div>
+
+            <!-- Restricties -->
+            <section class="restrictions-section">
+                <h2 class="section-title">Restricties</h2>
+                <div id="restrictionsList">
+                    <div class="restriction-bar vrij">
+                        <span class="restriction-icon">✅</span>
+                        <span>Vrij - geen restricties</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Daglijst -->
+            <section class="day-schedule">
+                <h2 class="section-title">Vandaag nog:</h2>
+                <div id="scheduleList">
+                    <p class="empty-message">Geen medicijnen ingesteld</p>
+                </div>
+            </section>
+
+            <!-- Voeg toe knop als geen medicijnen -->
+            <div id="addFirstMedicijn" style="margin: 16px;">
+                <button class="add-btn" onclick="showAddMedicijn()">+ Voeg je eerste medicijn toe</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- Instellingen scherm -->
+    <div class="screen" id="settingsScreen">
+        <header class="header">
+            <button class="back-btn" onclick="showHome()">← Terug</button>
+            <h1 style="font-size: var(--body);">Instellingen</h1>
+            <div style="width: 80px;"></div>
+        </header>
+
+        <section class="settings-section">
+            <h2 class="section-title">Medicijnen</h2>
+            <div id="medicijnenList"></div>
+            <button class="add-btn" id="addMedicijnBtn" onclick="showAddMedicijn()">+ Medicijn toevoegen</button>
+        </section>
+
+        <section class="settings-section">
+            <h2 class="section-title">Weergave</h2>
+            <div class="settings-card">
+                <div class="setting-row">
+                    <span class="setting-label">Weergavemodus</span>
+                </div>
+                <div class="mode-buttons">
+                    <button class="mode-btn active" id="modeNormaal" onclick="setWeergave('normaal')">Normaal</button>
+                    <button class="mode-btn" id="modeGroot" onclick="setWeergave('extra-groot')">Extra groot</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="settings-section">
+            <h2 class="section-title">Geluid</h2>
+            <div class="settings-card">
+                <div class="setting-row">
+                    <span class="setting-label">Trillen</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="trillenToggle" checked onchange="saveSettings()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="setting-row">
+                    <span class="setting-label">Geluid aan</span>
+                    <label class="toggle">
+                        <input type="checkbox" id="geluidToggle" checked onchange="saveSettings()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <div class="app-info">
+            <p>Pillie v1.0.0</p>
+            <p>Medicatie herinnering voor ouderen</p>
+        </div>
+    </div>
+
+    <!-- Medicijn toevoegen scherm -->
+    <div class="screen" id="addMedicijnScreen">
+        <header class="header">
+            <button class="back-btn" id="wizardBackBtn" onclick="wizardBack()">← Terug</button>
+            <h1 style="font-size: var(--body);">Medicijn toevoegen</h1>
+            <div style="width: 80px;"></div>
+        </header>
+
+        <div class="progress-dots" id="progressDots">
+            <div class="progress-dot active"></div>
+            <div class="progress-dot"></div>
+            <div class="progress-dot"></div>
+            <div class="progress-dot"></div>
+            <div class="progress-dot"></div>
+        </div>
+
+        <!-- Stap 1: Naam -->
+        <div class="wizard-step active" id="step1">
+            <h2 class="step-question">Hoe heet je medicijn?</h2>
+            <input type="text" class="text-input" id="medicijnNaam" placeholder="Bijv. Omeprazol">
+            <button class="next-btn" onclick="wizardNext()" id="step1Next">Volgende →</button>
+        </div>
+
+        <!-- Stap 2: Tijd -->
+        <div class="wizard-step" id="step2">
+            <h2 class="step-question">Hoe laat neem je deze pil?</h2>
+            <div class="time-input-container">
+                <input type="time" class="time-input" id="medicijnTijd" value="08:00">
+            </div>
+            <button class="next-btn" onclick="wizardNext()">Volgende →</button>
+        </div>
+
+        <!-- Stap 3: Eten -->
+        <div class="wizard-step" id="step3">
+            <h2 class="step-question">Mag je eten rondom deze pil?</h2>
+            <button class="option-btn" id="eetOptie1" onclick="selectEetOptie('ja')">✅ Ja, mag eten</button>
+            <button class="option-btn" id="eetOptie2" onclick="selectEetOptie('maaltijd')">🍽️ Bij maaltijd</button>
+            <button class="option-btn" id="eetOptie3" onclick="selectEetOptie('nee')">🚫 Niet eten</button>
+
+            <div class="sub-options" id="eetSubOpties" style="display: none;">
+                <p class="setting-label" style="margin-bottom: 12px;">Hoeveel minuten niet eten?</p>
+                <div class="minute-row">
+                    <span class="minute-label">Vooraf:</span>
+                    <input type="number" class="minute-input" id="eetVooraf" value="30">
+                    <span class="minute-unit">min</span>
+                </div>
+                <div class="minute-row">
+                    <span class="minute-label">Achteraf:</span>
+                    <input type="number" class="minute-input" id="eetAchteraf" value="30">
+                    <span class="minute-unit">min</span>
+                </div>
+            </div>
+            <button class="next-btn" onclick="wizardNext()">Volgende →</button>
+        </div>
+
+        <!-- Stap 4: Liggen -->
+        <div class="wizard-step" id="step4">
+            <h2 class="step-question">Moet je rechtop blijven na inname?</h2>
+            <button class="option-btn" id="ligOptie1" onclick="selectLigOptie('nee')">✅ Nee, mag liggen</button>
+            <button class="option-btn" id="ligOptie2" onclick="selectLigOptie('ja')">🚫 Rechtop blijven</button>
+
+            <div class="sub-options" id="ligSubOpties" style="display: none;">
+                <p class="setting-label" style="margin-bottom: 12px;">Hoeveel minuten rechtop blijven?</p>
+                <div class="minute-row">
+                    <input type="number" class="minute-input" id="nietLiggen" value="30" style="width: 100px;">
+                    <span class="minute-unit">minuten</span>
+                </div>
+            </div>
+            <button class="next-btn" onclick="wizardNext()">Volgende →</button>
+        </div>
+
+        <!-- Stap 5: Samenvatting -->
+        <div class="wizard-step" id="step5">
+            <h2 class="step-question">Samenvatting</h2>
+            <div class="summary-card">
+                <div class="summary-row">
+                    <span class="summary-label">Medicijn:</span>
+                    <span class="summary-value" id="summaryNaam">-</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Tijdstip:</span>
+                    <span class="summary-value" id="summaryTijd">-</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Eten:</span>
+                    <span class="summary-value" id="summaryEten">-</span>
+                </div>
+                <div class="summary-row">
+                    <span class="summary-label">Liggen:</span>
+                    <span class="summary-value" id="summaryLiggen">-</span>
+                </div>
+            </div>
+            <button class="save-btn" onclick="saveMedicijn()">✓ Opslaan</button>
+        </div>
+    </div>
+
+    <!-- Ingenomen Modal -->
+    <div class="modal-overlay" id="takeModal">
+        <div class="modal-content">
+            <h2 class="modal-title">Hoe laat heb je de pil ingenomen?</h2>
+            <button class="modal-btn success" onclick="takeNow()">Nu (<span id="currentTimeDisplay">--:--</span>)</button>
+            <p class="modal-subtitle">of kies een tijd:</p>
+            <div class="time-input-container">
+                <input type="time" class="time-input" id="takeTimeInput">
+            </div>
+            <div style="display: flex; gap: 12px;">
+                <button class="modal-btn cancel" onclick="closeTakeModal()">Annuleren</button>
+                <button class="modal-btn primary" onclick="confirmTake()">Bevestigen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Verschuiving Modal -->
+    <div class="modal-overlay" id="shiftModal">
+        <div class="modal-content">
+            <h2 class="modal-title" id="shiftTitle">Je nam de pil later in.</h2>
+            <p class="modal-subtitle">Wanneer wil je de volgende pil nemen?</p>
+            <button class="modal-btn primary" id="shiftOptie1" onclick="confirmShift(false)">Zoals gepland</button>
+            <button class="modal-btn outline" id="shiftOptie2" onclick="confirmShift(true)">Verschuiven</button>
+        </div>
+    </div>
+
+    <script>
+        // Data opslag
+        let medicijnen = JSON.parse(localStorage.getItem('pillie_medicijnen') || '[]');
+        let ingenomenVandaag = JSON.parse(localStorage.getItem('pillie_ingenomen_' + getTodayKey()) || '{}');
+        let settings = JSON.parse(localStorage.getItem('pillie_settings') || '{"weergave":"normaal","trillen":true,"geluid":true}');
+
+        // Wizard state
+        let currentStep = 1;
+        let newMedicijn = {
+            naam: '',
+            tijdstip: '08:00',
+            eetOptie: 'ja',
+            eetVooraf: 30,
+            eetAchteraf: 30,
+            ligOptie: 'nee',
+            nietLiggen: 30
+        };
+        let editingIndex = -1;
+
+        // Huidige actieve medicijn voor inname
+        let activeMedicijnIndex = -1;
+        let takeTime = null;
+        let timeDifference = 0;
+
+        // Notificatie interval
+        let notificationInterval = null;
+
+        function getTodayKey() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        // Initialisatie
+        function init() {
+            loadSettings();
+            updateUI();
+            startCountdown();
+            checkNotifications();
+
+            // Check elke minuut voor notificaties
+            setInterval(checkNotifications, 60000);
+        }
+
+        function loadSettings() {
+            if (settings.weergave === 'extra-groot') {
+                document.body.classList.add('extra-groot');
+                document.getElementById('modeNormaal').classList.remove('active');
+                document.getElementById('modeGroot').classList.add('active');
+            }
+            document.getElementById('trillenToggle').checked = settings.trillen !== false;
+            document.getElementById('geluidToggle').checked = settings.geluid !== false;
+        }
+
+        function saveSettings() {
+            settings.trillen = document.getElementById('trillenToggle').checked;
+            settings.geluid = document.getElementById('geluidToggle').checked;
+            localStorage.setItem('pillie_settings', JSON.stringify(settings));
+        }
+
+        function setWeergave(mode) {
+            settings.weergave = mode;
+            localStorage.setItem('pillie_settings', JSON.stringify(settings));
+
+            if (mode === 'extra-groot') {
+                document.body.classList.add('extra-groot');
+                document.getElementById('modeNormaal').classList.remove('active');
+                document.getElementById('modeGroot').classList.add('active');
+            } else {
+                document.body.classList.remove('extra-groot');
+                document.getElementById('modeNormaal').classList.add('active');
+                document.getElementById('modeGroot').classList.remove('active');
+            }
+        }
+
+        // UI Updates
+        function updateUI() {
+            updateMedicijnenList();
+            updateScheduleList();
+            updateRestrictions();
+            updateAddButton();
+        }
+
+        function updateMedicijnenList() {
+            const list = document.getElementById('medicijnenList');
+            if (medicijnen.length === 0) {
+                list.innerHTML = '<p class="empty-message">Nog geen medicijnen toegevoegd</p>';
+            } else {
+                list.innerHTML = medicijnen.map((med, index) => `
+                    <div class="medicijn-card">
+                        <div class="medicijn-info">
+                            <div class="name">💊 ${med.naam}</div>
+                            <div class="time">${med.tijdstip}</div>
+                        </div>
+                        <div class="medicijn-actions">
+                            <button class="action-btn edit" onclick="editMedicijn(${index})">✏️</button>
+                            <button class="action-btn delete" onclick="deleteMedicijn(${index})">🗑️</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Verberg toevoegen knop als max bereikt
+            document.getElementById('addMedicijnBtn').style.display = medicijnen.length >= 3 ? 'none' : 'block';
+        }
+
+        function updateScheduleList() {
+            const list = document.getElementById('scheduleList');
+            const now = new Date();
+
+            const upcoming = medicijnen
+                .map((med, index) => ({...med, index}))
+                .filter(med => !ingenomenVandaag[med.id])
+                .sort((a, b) => a.tijdstip.localeCompare(b.tijdstip));
+
+            if (upcoming.length === 0) {
+                if (medicijnen.length === 0) {
+                    list.innerHTML = '<p class="empty-message">Geen medicijnen ingesteld</p>';
+                } else {
+                    list.innerHTML = '<p class="empty-message" style="color: var(--green);">✅ Alle medicijnen ingenomen</p>';
+                }
+            } else {
+                list.innerHTML = upcoming.map(med => {
+                    const [hours, minutes] = med.tijdstip.split(':').map(Number);
+                    const medTime = new Date();
+                    medTime.setHours(hours, minutes, 0, 0);
+                    const isOverdue = medTime < now;
+
+                    return `
+                        <div class="schedule-item ${isOverdue ? 'overdue' : ''}">
+                            <span class="bullet">•</span>
+                            <span class="name">${med.naam}</span>
+                            <span class="time">om ${med.tijdstip}${isOverdue ? ' (te laat)' : ''}</span>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function updateRestrictions() {
+            const list = document.getElementById('restrictionsList');
+            const now = new Date();
+            const restrictions = [];
+
+            // Check actieve restricties voor ingenomen medicijnen
+            medicijnen.forEach(med => {
+                const innameTijd = ingenomenVandaag[med.id];
+                if (!innameTijd) return;
+
+                const innameDate = new Date(innameTijd);
+
+                // Niet eten restrictie (achteraf)
+                if (med.eetOptie === 'nee' && med.eetAchteraf > 0) {
+                    const eindTijd = new Date(innameDate.getTime() + med.eetAchteraf * 60000);
+                    if (eindTijd > now) {
+                        const remaining = Math.ceil((eindTijd - now) / 60000);
+                        restrictions.push({
+                            type: 'niet-eten',
+                            label: 'Niet eten',
+                            medicijn: med.naam,
+                            remaining: remaining
+                        });
+                    }
+                }
+
+                // Niet liggen restrictie
+                if (med.ligOptie === 'ja' && med.nietLiggen > 0) {
+                    const eindTijd = new Date(innameDate.getTime() + med.nietLiggen * 60000);
+                    if (eindTijd > now) {
+                        const remaining = Math.ceil((eindTijd - now) / 60000);
+                        restrictions.push({
+                            type: 'niet-liggen',
+                            label: 'Niet liggen',
+                            medicijn: med.naam,
+                            remaining: remaining
+                        });
+                    }
+                }
+            });
+
+            // Check "niet eten vooraf" restricties
+            medicijnen.forEach(med => {
+                if (ingenomenVandaag[med.id]) return;
+                if (med.eetOptie !== 'nee' || med.eetVooraf <= 0) return;
+
+                const [hours, minutes] = med.tijdstip.split(':').map(Number);
+                const medTime = new Date();
+                medTime.setHours(hours, minutes, 0, 0);
+
+                const startRestrictie = new Date(medTime.getTime() - med.eetVooraf * 60000);
+
+                if (startRestrictie <= now && medTime > now) {
+                    const remaining = Math.ceil((medTime - now) / 60000);
+                    restrictions.push({
+                        type: 'niet-eten',
+                        label: 'Niet eten',
+                        medicijn: med.naam,
+                        remaining: remaining
+                    });
+                }
+            });
+
+            // Sorteer op resterende tijd
+            restrictions.sort((a, b) => a.remaining - b.remaining);
+
+            if (restrictions.length === 0) {
+                list.innerHTML = `
+                    <div class="restriction-bar vrij">
+                        <span class="restriction-icon">✅</span>
+                        <span>Vrij - geen restricties</span>
+                    </div>
+                `;
+            } else {
+                list.innerHTML = restrictions.map(r => `
+                    <div class="restriction-bar ${r.type}">
+                        <span class="restriction-icon">${r.type === 'niet-eten' ? '🚫🍽️' : '🚫🛏️'}</span>
+                        <div class="restriction-text">
+                            <div class="restriction-label">${r.label}</div>
+                            <div class="restriction-med">${r.medicijn}</div>
+                        </div>
+                        <span class="restriction-time">nog ${formatMinutes(r.remaining)}</span>
+                    </div>
+                `).join('');
+            }
+        }
+
+        function formatMinutes(minutes) {
+            if (minutes < 60) {
+                return `${minutes} min`;
+            }
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            if (mins === 0) {
+                return `${hours} uur`;
+            }
+            return `${hours}u ${mins}m`;
+        }
+
+        function updateAddButton() {
+            const btn = document.getElementById('addFirstMedicijn');
+            btn.style.display = medicijnen.length === 0 ? 'block' : 'none';
+        }
+
+        // Countdown
+        function startCountdown() {
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+        }
+
+        function updateCountdown() {
+            const now = new Date();
+
+            // Vind volgende medicijn
+            const upcoming = medicijnen
+                .map((med, index) => ({...med, index}))
+                .filter(med => !ingenomenVandaag[med.id])
+                .map(med => {
+                    const [hours, minutes] = med.tijdstip.split(':').map(Number);
+                    const medTime = new Date();
+                    medTime.setHours(hours, minutes, 0, 0);
+                    return {...med, medTime};
+                })
+                .sort((a, b) => a.medTime - b.medTime);
+
+            const container = document.getElementById('countdownContainer');
+            const label = document.getElementById('nextMedicijnLabel');
+            const countdown = document.getElementById('countdownTime');
+            const textual = document.getElementById('textualTime');
+            const takeContainer = document.getElementById('takeButtonContainer');
+
+            if (upcoming.length === 0) {
+                container.className = 'countdown-container done';
+                label.textContent = '';
+                countdown.textContent = medicijnen.length === 0 ? '--:--:--' : 'Klaar!';
+                textual.textContent = medicijnen.length === 0 ? 'Geen medicijnen ingesteld' : 'Alle medicijnen ingenomen';
+                takeContainer.style.display = 'none';
+                activeMedicijnIndex = -1;
+                return;
+            }
+
+            const next = upcoming[0];
+            const diff = next.medTime - now;
+            const minutes = diff / 60000;
+
+            label.textContent = next.naam;
+
+            // Bepaal urgentie
+            if (minutes <= 0) {
+                container.className = 'countdown-container urgent';
+                countdown.textContent = 'NU!';
+                textual.textContent = 'Neem nu je medicijn';
+            } else if (minutes <= 5) {
+                container.className = 'countdown-container urgent';
+                countdown.textContent = formatCountdown(diff);
+                textual.textContent = formatTextualTime(diff);
+            } else if (minutes <= 30) {
+                container.className = 'countdown-container warning';
+                countdown.textContent = formatCountdown(diff);
+                textual.textContent = formatTextualTime(diff);
+            } else {
+                container.className = 'countdown-container normal';
+                countdown.textContent = formatCountdown(diff);
+                textual.textContent = formatTextualTime(diff);
+            }
+
+            // Toon ingenomen knop als het tijd is (binnen 5 min of te laat)
+            if (minutes <= 5) {
+                takeContainer.style.display = 'block';
+                document.getElementById('takeMedName').textContent = next.naam;
+                activeMedicijnIndex = next.index;
+            } else {
+                takeContainer.style.display = 'none';
+                activeMedicijnIndex = -1;
+            }
+
+            // Update restricties elke seconde
+            updateRestrictions();
+        }
+
+        function formatCountdown(ms) {
+            if (ms <= 0) return '00:00:00';
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function formatTextualTime(ms) {
+            if (ms <= 0) return 'Nu';
+            const totalMinutes = Math.floor(ms / 60000);
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+
+            if (hours === 0) {
+                return `Over ${minutes} ${minutes === 1 ? 'minuut' : 'minuten'}`;
+            } else if (minutes === 0) {
+                return `Over ${hours} uur`;
+            } else {
+                return `Over ${hours} uur en ${minutes} min`;
+            }
+        }
+
+        // Notificaties
+        function checkNotifications() {
+            const now = new Date();
+
+            medicijnen.forEach(med => {
+                if (ingenomenVandaag[med.id]) return;
+
+                const [hours, minutes] = med.tijdstip.split(':').map(Number);
+                const medTime = new Date();
+                medTime.setHours(hours, minutes, 0, 0);
+
+                const diff = (now - medTime) / 60000; // verschil in minuten
+
+                // Als het tijd is (tussen 0 en 1 minuut geleden) en nog niet genotificeerd
+                if (diff >= 0 && diff < 1) {
+                    showNotification(med.naam);
+                }
+            });
+        }
+
+        function showNotification(medicijnNaam) {
+            const alert = document.getElementById('notificationAlert');
+            document.getElementById('notificationText').textContent = `Neem nu je ${medicijnNaam} in`;
+            alert.classList.add('active');
+
+            // Speel geluid als ingeschakeld
+            if (settings.geluid) {
+                playNotificationSound();
+            }
+
+            // Trillen als ingeschakeld
+            if (settings.trillen && navigator.vibrate) {
+                navigator.vibrate([200, 100, 200]);
+            }
+
+            // Verberg na 10 seconden
+            setTimeout(() => {
+                alert.classList.remove('active');
+            }, 10000);
+        }
+
+        function playNotificationSound() {
+            // Simpele beep met Web Audio API
+            try {
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                gainNode.gain.value = 0.3;
+
+                oscillator.start();
+                setTimeout(() => oscillator.stop(), 200);
+            } catch (e) {
+                console.log('Audio niet beschikbaar');
+            }
+        }
+
+        // Ingenomen flow
+        function showTakeModal() {
+            const now = new Date();
+            document.getElementById('currentTimeDisplay').textContent =
+                `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            document.getElementById('takeTimeInput').value =
+                `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            document.getElementById('takeModal').classList.add('active');
+        }
+
+        function closeTakeModal() {
+            document.getElementById('takeModal').classList.remove('active');
+        }
+
+        function takeNow() {
+            takeTime = new Date();
+            checkTimeShift();
+        }
+
+        function confirmTake() {
+            const timeValue = document.getElementById('takeTimeInput').value;
+            const [hours, minutes] = timeValue.split(':').map(Number);
+            takeTime = new Date();
+            takeTime.setHours(hours, minutes, 0, 0);
+            checkTimeShift();
+        }
+
+        function checkTimeShift() {
+            closeTakeModal();
+
+            const med = medicijnen[activeMedicijnIndex];
+            const [hours, minutes] = med.tijdstip.split(':').map(Number);
+            const geplandeTime = new Date();
+            geplandeTime.setHours(hours, minutes, 0, 0);
+
+            timeDifference = Math.round((takeTime - geplandeTime) / 60000);
+
+            if (Math.abs(timeDifference) > 10) {
+                // Toon verschuiving modal
+                const direction = timeDifference > 0 ? 'later' : 'eerder';
+                document.getElementById('shiftTitle').textContent =
+                    `Je nam de pil ${Math.abs(timeDifference)} minuten ${direction} in.`;
+                document.getElementById('shiftOptie1').textContent = `Om ${med.tijdstip} zoals gepland`;
+                document.getElementById('shiftOptie2').textContent = `${Math.abs(timeDifference)} min ${direction}`;
+                document.getElementById('shiftModal').classList.add('active');
+            } else {
+                markAsIngenomen();
+            }
+        }
+
+        function confirmShift(shift) {
+            document.getElementById('shiftModal').classList.remove('active');
+            markAsIngenomen();
+        }
+
+        function markAsIngenomen() {
+            const med = medicijnen[activeMedicijnIndex];
+            ingenomenVandaag[med.id] = takeTime.toISOString();
+            localStorage.setItem('pillie_ingenomen_' + getTodayKey(), JSON.stringify(ingenomenVandaag));
+            updateUI();
+        }
+
+        function skipMedicijn() {
+            if (confirm('Weet je zeker dat je dit medicijn wilt overslaan?')) {
+                const med = medicijnen[activeMedicijnIndex];
+                ingenomenVandaag[med.id] = 'skipped';
+                localStorage.setItem('pillie_ingenomen_' + getTodayKey(), JSON.stringify(ingenomenVandaag));
+                updateUI();
+            }
+        }
+
+        // Navigatie
+        function showHome() {
+            document.getElementById('homeScreen').classList.add('active');
+            document.getElementById('settingsScreen').classList.remove('active');
+            document.getElementById('addMedicijnScreen').classList.remove('active');
+            updateUI();
+        }
+
+        function showSettings() {
+            document.getElementById('homeScreen').classList.remove('active');
+            document.getElementById('settingsScreen').classList.add('active');
+            document.getElementById('addMedicijnScreen').classList.remove('active');
+            updateMedicijnenList();
+        }
+
+        function showAddMedicijn() {
+            if (medicijnen.length >= 3 && editingIndex === -1) {
+                alert('Je kunt maximaal 3 medicijnen toevoegen.');
+                return;
+            }
+
+            document.getElementById('homeScreen').classList.remove('active');
+            document.getElementById('settingsScreen').classList.remove('active');
+            document.getElementById('addMedicijnScreen').classList.add('active');
+
+            resetWizard();
+        }
+
+        // Wizard
+        function resetWizard() {
+            currentStep = 1;
+            newMedicijn = {
+                naam: '',
+                tijdstip: '08:00',
+                eetOptie: 'ja',
+                eetVooraf: 30,
+                eetAchteraf: 30,
+                ligOptie: 'nee',
+                nietLiggen: 30
+            };
+
+            document.getElementById('medicijnNaam').value = '';
+            document.getElementById('medicijnTijd').value = '08:00';
+            document.getElementById('eetVooraf').value = '30';
+            document.getElementById('eetAchteraf').value = '30';
+            document.getElementById('nietLiggen').value = '30';
+
+            // Reset opties
+            document.querySelectorAll('.option-btn').forEach(btn => {
+                btn.classList.remove('selected', 'selected-red', 'selected-purple');
+            });
+            document.getElementById('eetSubOpties').style.display = 'none';
+            document.getElementById('ligSubOpties').style.display = 'none';
+
+            updateWizardStep();
+        }
+
+        function updateWizardStep() {
+            // Update stappen
+            for (let i = 1; i <= 5; i++) {
+                const step = document.getElementById(`step${i}`);
+                step.classList.toggle('active', i === currentStep);
+            }
+
+            // Update progress dots
+            const dots = document.querySelectorAll('.progress-dot');
+            dots.forEach((dot, index) => {
+                dot.classList.remove('active', 'complete');
+                if (index + 1 === currentStep) {
+                    dot.classList.add('active');
+                } else if (index + 1 < currentStep) {
+                    dot.classList.add('complete');
+                }
+            });
+
+            // Update back button
+            document.getElementById('wizardBackBtn').textContent = currentStep === 1 ? '← Annuleren' : '← Terug';
+
+            // Update summary
+            if (currentStep === 5) {
+                document.getElementById('summaryNaam').textContent = newMedicijn.naam;
+                document.getElementById('summaryTijd').textContent = newMedicijn.tijdstip;
+
+                let eetText = 'Mag eten';
+                if (newMedicijn.eetOptie === 'maaltijd') {
+                    eetText = 'Bij maaltijd';
+                } else if (newMedicijn.eetOptie === 'nee') {
+                    eetText = `Niet eten ${newMedicijn.eetVooraf}min voor, ${newMedicijn.eetAchteraf}min na`;
+                }
+                document.getElementById('summaryEten').textContent = eetText;
+
+                let ligText = 'Mag liggen';
+                if (newMedicijn.ligOptie === 'ja') {
+                    ligText = `${newMedicijn.nietLiggen}min rechtop blijven`;
+                }
+                document.getElementById('summaryLiggen').textContent = ligText;
+            }
+        }
+
+        function wizardNext() {
+            if (currentStep === 1) {
+                newMedicijn.naam = document.getElementById('medicijnNaam').value.trim();
+                if (!newMedicijn.naam) {
+                    alert('Vul een naam in voor het medicijn');
+                    return;
+                }
+            } else if (currentStep === 2) {
+                newMedicijn.tijdstip = document.getElementById('medicijnTijd').value;
+            } else if (currentStep === 3) {
+                newMedicijn.eetVooraf = parseInt(document.getElementById('eetVooraf').value) || 0;
+                newMedicijn.eetAchteraf = parseInt(document.getElementById('eetAchteraf').value) || 0;
+            } else if (currentStep === 4) {
+                newMedicijn.nietLiggen = parseInt(document.getElementById('nietLiggen').value) || 0;
+            }
+
+            currentStep++;
+            updateWizardStep();
+        }
+
+        function wizardBack() {
+            if (currentStep === 1) {
+                editingIndex = -1;
+                showSettings();
+            } else {
+                currentStep--;
+                updateWizardStep();
+            }
+        }
+
+        function selectEetOptie(optie) {
+            newMedicijn.eetOptie = optie;
+
+            document.getElementById('eetOptie1').classList.remove('selected');
+            document.getElementById('eetOptie2').classList.remove('selected');
+            document.getElementById('eetOptie3').classList.remove('selected', 'selected-red');
+
+            if (optie === 'ja') {
+                document.getElementById('eetOptie1').classList.add('selected');
+            } else if (optie === 'maaltijd') {
+                document.getElementById('eetOptie2').classList.add('selected');
+            } else {
+                document.getElementById('eetOptie3').classList.add('selected-red');
+            }
+
+            document.getElementById('eetSubOpties').style.display = optie === 'nee' ? 'block' : 'none';
+        }
+
+        function selectLigOptie(optie) {
+            newMedicijn.ligOptie = optie;
+
+            document.getElementById('ligOptie1').classList.remove('selected');
+            document.getElementById('ligOptie2').classList.remove('selected', 'selected-purple');
+
+            if (optie === 'nee') {
+                document.getElementById('ligOptie1').classList.add('selected');
+            } else {
+                document.getElementById('ligOptie2').classList.add('selected-purple');
+            }
+
+            document.getElementById('ligSubOpties').style.display = optie === 'ja' ? 'block' : 'none';
+        }
+
+        function saveMedicijn() {
+            const medicijn = {
+                id: editingIndex >= 0 ? medicijnen[editingIndex].id : generateId(),
+                naam: newMedicijn.naam,
+                tijdstip: newMedicijn.tijdstip,
+                eetOptie: newMedicijn.eetOptie,
+                eetVooraf: newMedicijn.eetVooraf,
+                eetAchteraf: newMedicijn.eetAchteraf,
+                ligOptie: newMedicijn.ligOptie,
+                nietLiggen: newMedicijn.nietLiggen
+            };
+
+            if (editingIndex >= 0) {
+                medicijnen[editingIndex] = medicijn;
+            } else {
+                medicijnen.push(medicijn);
+            }
+
+            localStorage.setItem('pillie_medicijnen', JSON.stringify(medicijnen));
+            editingIndex = -1;
+            showHome();
+        }
+
+        function editMedicijn(index) {
+            editingIndex = index;
+            const med = medicijnen[index];
+
+            newMedicijn = {...med};
+
+            document.getElementById('medicijnNaam').value = med.naam;
+            document.getElementById('medicijnTijd').value = med.tijdstip;
+            document.getElementById('eetVooraf').value = med.eetVooraf;
+            document.getElementById('eetAchteraf').value = med.eetAchteraf;
+            document.getElementById('nietLiggen').value = med.nietLiggen;
+
+            currentStep = 1;
+
+            document.getElementById('homeScreen').classList.remove('active');
+            document.getElementById('settingsScreen').classList.remove('active');
+            document.getElementById('addMedicijnScreen').classList.add('active');
+
+            updateWizardStep();
+
+            // Zet opties
+            selectEetOptie(med.eetOptie);
+            selectLigOptie(med.ligOptie);
+        }
+
+        function deleteMedicijn(index) {
+            if (confirm(`Weet je zeker dat je ${medicijnen[index].naam} wilt verwijderen?`)) {
+                medicijnen.splice(index, 1);
+                localStorage.setItem('pillie_medicijnen', JSON.stringify(medicijnen));
+                updateMedicijnenList();
+                updateUI();
+            }
+        }
+
+        // Start de app
+        init();
+
+        // Service Worker registratie voor PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('Service Worker geregistreerd:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registratie mislukt:', error);
+                    });
+            });
+        }
+
+        // iOS installatie prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Toon eventueel een custom installatie knop
+        });
+
+        // Detecteer standalone mode (geinstalleerd als app)
+        if (window.matchMedia('(display-mode: standalone)').matches ||
+            window.navigator.standalone === true) {
+            console.log('App draait in standalone mode');
+            document.body.classList.add('standalone');
+        }
+    </script>
+</body>
+</html>
